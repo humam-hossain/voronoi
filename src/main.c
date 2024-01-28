@@ -6,8 +6,8 @@
 #include <string.h>
 #include <time.h>
 
-#define WIDTH 1920
-#define HEIGHT 1080
+#define WIDTH 800
+#define HEIGHT 600
 #define SEEDS_COUNT 20
 #define SEED_MARKER_RADIUS 5
 
