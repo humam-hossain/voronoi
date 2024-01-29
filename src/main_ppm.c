@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <string.h>
 #include <time.h>
+#include <limits.h>
 
 #define WIDTH 800
 #define HEIGHT 600
@@ -17,7 +18,7 @@
 #define COLOR_GREEN 0xFF00FF00
 #define COLOR_BLUE  0xFFFF0000
 #define BACKGROUND_COLOR 0xFF181818
-#define SEED_MARKER_COLOR COLOR_WHITE
+#define SEED_MARKER_COLOR COLOR_BLACK
 
 #define GRUVBOX_BRIGHT_RED     0xFF3449FB  
 #define GRUVBOX_BRIGHT_GREEN   0xFF26BBB8  
@@ -35,6 +36,7 @@ typedef struct {
 } Point;
 
 static Color32 image[HEIGHT][WIDTH];
+static int depth[HEIGHT][WIDTH];
 static Point seeds[SEEDS_COUNT];
 static Color32 palette[] = {
     GRUVBOX_BRIGHT_RED,
@@ -172,15 +174,17 @@ void render_point_gradient()
     }
 }
 
-void apply_next_seed_color(Color32 next_seed_color)
+void apply_next_seed(size_t seed_index)
 {
-    Point next_seed = color_to_point(next_seed_color);
+    Point seed = seeds[seed_index];
+    Color32 color = palette[seed_index%palette_count];
+
     for(int y = 0; y < HEIGHT; ++y){
         for(int x = 0; x < WIDTH; ++x){
-            Point curr_seed = color_to_point(image[y][x]);
-
-            if(sqr_dist(next_seed.x, next_seed.y, x, y) < sqr_dist(curr_seed.x, curr_seed.y, x, y)){
-                image[y][x] = next_seed_color;
+            int d = sqr_dist(seed.x, seed.y, x, y);
+            if(d < depth[y][x]){
+                depth[y][x] = d;
+                image[y][x] = color;
             }
         }
     }
@@ -188,19 +192,25 @@ void apply_next_seed_color(Color32 next_seed_color)
 
 void render_voronoi_interesting()
 {
-    fill_image(point_to_color(seeds[0]));
-    for(size_t i=1; i < SEEDS_COUNT; ++i){
-        apply_next_seed_color(point_to_color(seeds[i]));
+    for(int y = 0; y < HEIGHT; ++y){
+        for(int x = 0; x < WIDTH; ++x){
+            depth[y][x] = INT_MAX;
+        }
     }
-    render_seed_markers();
+
+    for(int i = 0; i < SEEDS_COUNT; ++i){
+        apply_next_seed(i);
+    }
 }
 
 int main()
 {
     srand(time(0));
+
     fill_image(BACKGROUND_COLOR);
     generate_random_seeds();
     render_voronoi_interesting();
+    render_seed_markers();
     save_image_as_ppm(OUTPUT_FILE_PATH);
 
     return 0;
